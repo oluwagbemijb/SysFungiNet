@@ -1,0 +1,40 @@
+# Base Image: Use a lightweight, official Python version
+# Python 3.9 is chosen for maximum compatibility with RDKit and XGBoost
+FROM python:3.9-slim
+
+# Add metadata for the Journal (FAIR Compliance)
+LABEL maintainer="Your Name <your.email@university.edu>"
+LABEL description="SysFungiNet Framework for Nutraceutical Prioritization"
+LABEL version="1.0"
+LABEL doi="10.5281/zenodo.XXXXXXX"
+
+# Set environment variables
+# PYTHONUNBUFFERED=1 ensures logs are printed immediately (useful for pipeline monitoring)
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1
+
+# Set the working directory inside the container
+WORKDIR /app
+
+# Install system-level dependencies
+# libxrender and libxext are often required by RDKit to render molecules
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    libxrender1 \
+    libxext6 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy the dependency file first (Optimizes Docker caching)
+COPY requirements.txt .
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy the actual SysFungiNet pipeline code
+COPY sysfunginet_complete.py .
+
+# Create a directory for output data
+RUN mkdir /app/output
+
+# Define the command to run when the container starts
+ENTRYPOINT ["python", "sysfunginet_complete.py"]
